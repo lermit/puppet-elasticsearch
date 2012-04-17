@@ -3,7 +3,7 @@ To use this module:
     http://www.elasticsearch.org/download/
 2.) You will also need to download the elasticsearch service wrapper
     https://github.com/elasticsearch/elasticsearch-servicewrapper
-    
+
 Usage:
 
 In your templates.pp or nodes.pp or wherever you define your server roles and applications you can call the elasticsearch module like so:
@@ -13,10 +13,15 @@ class role_prod_dbserver {
 }
 
 This version number should correspond to the version of ES you downloaded from the above link.
-The filenames should look like: 
-/etc/puppet/modules/elasticsearch/files/elasticsearch-${version}.tar.gz 
+The filenames should look like:
+/etc/puppet/modules/elasticsearch/files/elasticsearch-${version}.tar.gz
 - and -
 /etc/puppet/modules/elasticsearch/files/elasticsearch-servicewrapper.tar.gz
+
+Files for elasticsearch-servicewrapper.tar.gz can be found here : https://github.com/elasticsearch/elasticsearch-servicewrapper
+- git clone https://github.com/elasticsearch/elasticsearch-servicewrapper.git
+- tar cvfz elasticsearch-servicewrapper.tar.gz elasticsearch-servicewrapper
+
 
 For additional information see my blog post here:
 http://www.visibiz.com/blog/hunter/elasticsearch/elasticsearch-puppet-module
