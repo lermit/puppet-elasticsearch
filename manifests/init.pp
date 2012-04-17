@@ -32,7 +32,7 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
 
       # Prepare elasticsearch require option
       if $useLvm  == true {
-        $elasticsearchUserRequireOption = [Package["sun-java6-jre"], lvmconfig[$ebs1]]
+        $elasticsearchUserRequireOption = [Package["sun-java6-jre"], Lvmconfig[$ebs1]]
       } else {
         $elasticsearchUserRequireOption = Package["sun-java6-jre"]
       }
@@ -69,7 +69,7 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
           path => "/bin:/usr/bin",
           command => "mkdir -p $ebs1/usr/local",
           before => File["$esPath"],
-          require => user["$esBasename"]
+          require => User["$esBasename"]
      }
 
      # Make sure we have the application path
@@ -164,7 +164,7 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
              path => "/bin:/usr/bin",
              unless => "test -d $esPath/bin/service/lib",
              command => "tar -xzf /tmp/$esServiceFile -C /tmp && mv /tmp/$esServiceName/service $esPath/bin && rm /tmp/$esServiceFile",
-             require => [file["/tmp/$esServiceFile"], user["$esBasename"]]
+             require => [File["/tmp/$esServiceFile"], User["$esBasename"]]
       }
 
       # Ensure the service is present
@@ -179,13 +179,13 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
       # Set the service config settings
       file { "$esPath/bin/service/elasticsearch.conf":
              content => template("elasticsearch/elasticsearch.conf.erb"),
-             require => file["$esPath/bin/service"]
+             require => File["$esPath/bin/service"]
       }
 
       # Add customized startup script (see: http://www.elasticsearch.org/tutorials/2011/02/22/running-elasticsearch-as-a-non-root-user.html)
       file { "$esPath/bin/service/elasticsearch":
              source => "puppet:///elasticsearch/elasticsearch",
-             require => file["$esPath/bin/service"]
+             require => File["$esPath/bin/service"]
       }
 
       # Create startup script
@@ -201,7 +201,7 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
            group     => "$esBasename",
            ensure    => directory,
            recurse   => true,
-           require   => exec["elasticsearch-package"],
+           require   => Exec["elasticsearch-package"],
       }
 
       if "$esLogPath" != "/var/log/${esBasename}" {
