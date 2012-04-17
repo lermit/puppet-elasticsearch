@@ -5,7 +5,7 @@
 # Usage:
 # include elasticsearch
 
-class elasticsearch($version = "0.15.2", $xmx = "2048m") {
+class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
       $esBasename       = "elasticsearch"
       $esName           = "${esBasename}-${version}"
       $esFile           = "${esName}.tar.gz"
@@ -26,14 +26,23 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m") {
       $esPidpath        = "/var/run"
       $esPidfile        = "${esPidpath}/${esBasename}.pid"
       $esJarfile        = "${esName}.jar"
+      $useLvm           = "$lvm"
 
       # Ensure the elasticsearch user is present
+
+      # Prepare elasticsearch require option
+      if $useLvm  == true {
+        $elasticsearchUserRequireOption = [Package["sun-java6-jre"], lvmconfig[$ebs1]]
+      } else {
+        $elasticsearchUserRequireOption = Package["sun-java6-jre"]
+      }
+
       user { "$esBasename":
                ensure => "present",
                comment => "Elasticsearch user created by puppet",
                managehome => true,
                shell   => "/bin/false",
-               require => [Package["sun-java6-jre"], lvmconfig[$ebs1]],
+               require => $elasticsearchUserRequireOption,
                uid => 901
      }
 
