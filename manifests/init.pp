@@ -37,6 +37,10 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m") {
                uid => 901
      }
 
+     package { "sun-java6-jre":
+      ensure => "present"
+     }
+
      file { "/etc/security/limits.d/${esBasename}.conf":
             content => template("elasticsearch/elasticsearch.limits.conf.erb"),
             ensure => present,
