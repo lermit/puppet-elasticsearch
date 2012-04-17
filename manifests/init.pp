@@ -26,24 +26,24 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m") {
       $esPidpath        = "/var/run"
       $esPidfile        = "${esPidpath}/${esBasename}.pid"
       $esJarfile        = "${esName}.jar"
-       
+
       # Ensure the elasticsearch user is present
       user { "$esBasename":
                ensure => "present",
                comment => "Elasticsearch user created by puppet",
                managehome => true,
-               shell   => "/bin/false",          
+               shell   => "/bin/false",
                require => [Package["sun-java6-jre"], lvmconfig[$ebs1]],
                uid => 901
      }
-     
+
      file { "/etc/security/limits.d/${esBasename}.conf":
-            content => template("elasticsearch/elasticsearch.limits.conf.erb"),                                                                                                    
+            content => template("elasticsearch/elasticsearch.limits.conf.erb"),
             ensure => present,
             owner => root,
             group => root,
      }
-     
+
 #     file { "/etc/init/${esBasename}.conf":
 #          content => template("elasticsearch/upstart.elasticsearch.conf.erb"),
 #          ensure => present,
@@ -57,28 +57,28 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m") {
           command => "mkdir -p $ebs1/usr/local",
           before => File["$esPath"],
           require => user["$esBasename"]
-     }    
+     }
 
      # Make sure we have the application path
      file { "$esPath":
              ensure     => directory,
              require    => User["$esBasename"],
              owner      => "$esBasename",
-             group      => "$esBasename", 
+             group      => "$esBasename",
              recurse    => true
       }
-      
+
       # Temp location
       file { "/tmp/$esFile":
              source  => "puppet:///elasticsearch/$esFile",
              require => File["$esPath"],
              owner => "$esBasename"
       }
-      
+
       # Remove old files and copy in latest
       exec { "elasticsearch-package":
              path => "/bin:/usr/bin",
-             command => "mkdir -p $esPath && tar -xzf /tmp/$esFile -C /tmp && sudo -u$esBasename cp -rf /tmp/$esName/. $esPath/. && rm -rf /tmp/$esBasename*", 
+             command => "mkdir -p $esPath && tar -xzf /tmp/$esFile -C /tmp && sudo -u$esBasename cp -rf /tmp/$esName/. $esPath/. && rm -rf /tmp/$esBasename*",
              unless  => "test -f $esPath/bin/elasticsearch",
              require => File["/tmp/$esFile"],
              notify => Service["$esBasename"],
@@ -97,24 +97,26 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m") {
       file { "$esPathLink":
            ensure => link,
            target => "$esPath",
-           require => Exec["stop-elasticsearch-version-change"] 
-           
+           require => Exec["stop-elasticsearch-version-change"]
+
       }
-  
+
       # Ensure the data path is created
       file { "$esDataPath":
            ensure => directory,
            owner  => "$esBasename",
            group  => "$esBasename",
            require => Exec["elasticsearch-package"],
-           recurse => true           
+           recurse => true
       }
 
-      # Ensure the data path is created
-      file { "/var/lib/${esBasename}":
-           ensure => link,
-           target => "${esDataPath}",
-           require => File["$esDataPath"],
+      if "$esDataPath" != "/var/lib/${esBasename}" {
+        # Ensure the data path is created
+        file { "/var/lib/${esBasename}":
+             ensure => link,
+             target => "${esDataPath}",
+             require => File["$esDataPath"],
+        }
       }
 
       # Ensure the link to the data path is set
@@ -124,7 +126,7 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m") {
            target => "$esDataPath",
            require => File["$esDataPath"]
       }
-      
+
       # Symlink config to /etc
       file { "/etc/$esBasename":
              ensure => link,
@@ -135,15 +137,15 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m") {
       # Apply config template for search
       file { "$esPath/config/elasticsearch.yml":
              content => template("elasticsearch/elasticsearch.yml.erb"),
-             require => File["/etc/$esBasename"]      
+             require => File["/etc/$esBasename"]
       }
-      
+
       # Stage the Service Package
       file { "/tmp/$esServiceFile":
            source => "puppet:///elasticsearch/$esServiceFile",
             require => Exec["elasticsearch-package"]
       }
-      
+
       # Move the service wrapper into place
       exec { "elasticsearch-service":
              path => "/bin:/usr/bin",
@@ -166,7 +168,7 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m") {
              content => template("elasticsearch/elasticsearch.conf.erb"),
              require => file["$esPath/bin/service"]
       }
-      
+
       # Add customized startup script (see: http://www.elasticsearch.org/tutorials/2011/02/22/running-elasticsearch-as-a-non-root-user.html)
       file { "$esPath/bin/service/elasticsearch":
              source => "puppet:///elasticsearch/elasticsearch",
@@ -179,7 +181,7 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m") {
              target => "$esPath/bin/service/./elasticsearch",
              require => [Exec["stop-elasticsearch-version-change"], File["$esPath/bin/service/elasticsearch"]]
       }
-      
+
       # Ensure logging directory
       file { "$esLogPath":
            owner     => "$esBasename",
@@ -188,12 +190,14 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m") {
            recurse   => true,
            require   => exec["elasticsearch-package"],
       }
-      
-      # Ensure logging link is in place
-      file { "/var/log/$esBasename":
-           ensure => link,
-           target => "$esLogPath",
-           require => [File["${esLogPath}"], File["/etc/init.d/$esBasename"]]
+
+      if "$esLogPath" != "/var/log/${esBasename}" {
+        # Ensure logging link is in place
+        file { "/var/log/$esBasename":
+             ensure => link,
+             target => "$esLogPath",
+             require => [File["${esLogPath}"], File["/etc/init.d/$esBasename"]]
+        }
       }
 
       file { "$esPath/logs":
@@ -202,7 +206,7 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m") {
            force => true,
            require => File["/var/log/$esBasename"]
       }
-            
+
       # Ensure the service is running
       service { "$esBasename":
             enable => true,
