@@ -36,7 +36,7 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
         $elasticsearchUserRequireOption = Package["sun-java6-jre"]
       }
 
-      # Determine running release 
+      # Determine running release
       if $operatingsystemrelease >= 7.0 {
         $debian_release = "sid"
       } elsif $operatingsystemrelease >= 6.0 {
@@ -195,11 +195,12 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
       }
 
       # Move the service wrapper into place
-      exec { "elasticsearch-service":
-             path => "/bin:/usr/bin",
-             unless => "test -d $esPath/bin/service/lib",
-             command => "tar -xzf /tmp/$esServiceFile -C /tmp && mv /tmp/$esServiceName/service $esPath/bin && rm /tmp/$esServiceFile",
-             require => [File["/tmp/$esServiceFile"], User["$esBasename"]]
+      file { "elasticsearch-service":
+        ensure  => directory,
+        path    => "${esPath}/bin/service",
+        source  => "puppet:///modules/elasticsearch/elasticsearch-servicewrapper/service",
+        recurse => true,
+        require => User["$esBasename"],
       }
 
       # Ensure the service is present
