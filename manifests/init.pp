@@ -28,7 +28,6 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
       $esJarfile        = "${esName}.jar"
       $useLvm           = "$lvm"
 
-      # Ensure the elasticsearch user is present
 
       # Prepare elasticsearch require option
       if $useLvm  == true {
@@ -37,33 +36,25 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
         $elasticsearchUserRequireOption = Package["sun-java6-jre"]
       }
 
-      if $operatingsystemrelease > '7.0.0' {
+      # Determine running release 
+      if $operatingsystemrelease >= 7.0 {
         $debian_release = "sid"
-      } elsif $operatingsystemrelease > '6.0.0' {
+      } elsif $operatingsystemrelease >= 6.0 {
         $debian_release = "squeeze"
-      } elsif $operatingsystemrelease > '5.0.0' {
+      } elsif $operatingsystemrelease >= 5.0 {
         $debian_release = "lenny"
       } else {
         $debian_release = "etch"
       }
 
+      # If needed add non-free sources
       exec { "apt-source-non-free":
-        command => "echo deb http://ftp.fr.debian.org/debian/ ${debian_release} main contrib non-free >> /etc/apt/source.list.d/non-free.list",
-        unless  => "grep -Er 'deb (https?|ftp|file)://[-A-Za-z0-9\\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\\+&@#/%=~_|] (etch|lenny|squeeze|sid) .*non-free' /etc/apt/sources.list /etc/apt/sources.list.d/*.list",
+        command => "echo deb http://ftp.fr.debian.org/debian/ ${debian_release} main contrib non-free >> /etc/apt/sources.list.d/non-free.list; apt-get update",
+        unless  => "grep -Er 'deb (https?|ftp)://[-A-Za-z0-9\\+&@#/%?=~_|!:,.;]* (etch|lenny|squeeze|sid) .*non-free' /etc/apt/sources.list /etc/apt/sources.list.d/*.list",
         before  => Package["sun-java6-jre"],
       }
 
-
-      user { "$esBasename":
-               ensure => "present",
-               comment => "Elasticsearch user created by puppet",
-               managehome => true,
-               shell   => "/bin/false",
-               require => $elasticsearchUserRequireOption,
-               uid => 901
-     }
-
-      # Acceptation of the java license
+      # Accept the java license
       exec { "agree-to-jre-license":
         command => "/bin/echo -e sun-java6-jre shared/accepted-sun-dlj-v1-1 select true | debconf-set-selections",
         unless  => "debconf-get-selections | grep 'sun-java6-jre.*shared/accepted-sun-dlj-v1-1.*true'",
@@ -75,9 +66,21 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
         ensure => installed,
       }
 
-     package { "sun-java6-jre":
-      ensure  => "present",
-      require => Exec['agree-to-jre-license'],
+      # Install JRE
+      package { "sun-java6-jre":
+        ensure  => "present",
+        require => Exec['agree-to-jre-license'],
+      }
+
+
+      # Ensure the elasticsearch user is present
+      user { "$esBasename":
+               ensure => "present",
+               comment => "Elasticsearch user created by puppet",
+               managehome => true,
+               shell   => "/bin/false",
+               require => $elasticsearchUserRequireOption,
+               uid => 901
      }
 
      file { "/etc/security/limits.d/${esBasename}.conf":
