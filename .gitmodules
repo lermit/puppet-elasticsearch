@@ -1,0 +1,3 @@
+[submodule "files/elasticsearch-servicewrapper"]
+	path = files/elasticsearch-servicewrapper
+	url = https://github.com/elasticsearch/elasticsearch-servicewrapper.git
