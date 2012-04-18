@@ -136,7 +136,7 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
       exec { "stop-elasticsearch-version-change":
            command => "service elasticsearch stop",
            unless => "ps aux | grep ${esName} | grep -v grep",
-           onlyif => "ps aux | grep ${esBasename} | grep -v grep",
+           onlyif => "ps aux | grep 'java -Delasticsearch-service' | grep -v grep",
            require => Exec["elasticsearch-package"],
            notify => Service["$esBasename"]
       }
