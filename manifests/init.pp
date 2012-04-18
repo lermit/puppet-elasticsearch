@@ -254,7 +254,7 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
             enable => true,
             ensure => running,
             hasrestart => true,
-            require => File["$esPath/logs"]
+            require => [File["$esPath/logs"], File["/etc/init.d/elasticsearch"]],
       }
 
 }
