@@ -193,7 +193,7 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
         path    => "${esPath}/bin/service",
         source  => "puppet:///modules/elasticsearch/elasticsearch-servicewrapper/service",
         recurse => true,
-        require => User["$esBasename"],
+        require => [User["$esBasename"],Exec["elasticsearch-package"]],
       }
 
       # Ensure the service is present
