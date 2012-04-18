@@ -10,7 +10,6 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
       $esName           = "${esBasename}-${version}"
       $esFile           = "${esName}.tar.gz"
       $esServiceName    = "${esBasename}-servicewrapper"
-      $esServiceFile    = "${esServiceName}.tar.gz"
       $esPath           = "${ebs1}/usr/local/${esName}"
       $esPathLink       = "/usr/local/${esBasename}"
       $esDataPath       = "${ebs1}/var/lib/${esBasename}"
@@ -186,12 +185,6 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
       file { "$esPath/config/elasticsearch.yml":
              content => template("elasticsearch/elasticsearch.yml.erb"),
              require => File["/etc/$esBasename"]
-      }
-
-      # Stage the Service Package
-      file { "/tmp/$esServiceFile":
-           source => "puppet:///modules/elasticsearch/$esServiceFile",
-            require => Exec["elasticsearch-package"]
       }
 
       # Move the service wrapper into place
