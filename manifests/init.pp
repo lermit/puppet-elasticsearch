@@ -37,6 +37,23 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
         $elasticsearchUserRequireOption = Package["sun-java6-jre"]
       }
 
+      if $operatingsystemrelease > '7.0.0' {
+        $debian_release = "sid"
+      } elsif $operatingsystemrelease > '6.0.0' {
+        $debian_release = "squeeze"
+      } elsif $operatingsystemrelease > '5.0.0' {
+        $debian_release = "lenny"
+      } else {
+        $debian_release = "etch"
+      }
+
+      exec { "apt-source-non-free":
+        command => "echo deb http://ftp.fr.debian.org/debian/ ${debian_release} main contrib non-free >> /etc/apt/source.list.d/non-free.list",
+        unless  => "grep -Er 'deb (https?|ftp|file)://[-A-Za-z0-9\\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\\+&@#/%=~_|] (etch|lenny|squeeze|sid) .*non-free' /etc/apt/sources.list /etc/apt/sources.list.d/*.list",
+        before  => Package["sun-java6-jre"],
+      }
+
+
       user { "$esBasename":
                ensure => "present",
                comment => "Elasticsearch user created by puppet",
@@ -83,18 +100,20 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
 
       # Temp location
       file { "/tmp/$esFile":
-             source  => "puppet:///elasticsearch/$esFile",
+             source  => "puppet:///modules/elasticsearch/$esFile",
              require => File["$esPath"],
              owner => "$esBasename"
       }
 
       # Remove old files and copy in latest
       exec { "elasticsearch-package":
-             path => "/bin:/usr/bin",
-             command => "mkdir -p $esPath && tar -xzf /tmp/$esFile -C /tmp && sudo -u$esBasename cp -rf /tmp/$esName/. $esPath/. && rm -rf /tmp/$esBasename*",
-             unless  => "test -f $esPath/bin/elasticsearch",
-             require => File["/tmp/$esFile"],
-             notify => Service["$esBasename"],
+             path      => "/bin:/usr/bin",
+             command   => "mkdir -p $esPath && tar -xzf /tmp/$esFile -C /tmp && sudo -u$esBasename cp -rf /tmp/$esName/. $esPath/. && rm -rf /tmp/$esBasename*",
+             unless    => "test -f $esPath/bin/elasticsearch",
+             require   => File["/tmp/$esFile"],
+             notify    => Service["$esBasename"],
+             tries     => 3,
+             try_sleep => 1,
       }
 
       ## Note: this is a bit hackish, need to stop the old elasticsearch when upgrading
@@ -155,7 +174,7 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
 
       # Stage the Service Package
       file { "/tmp/$esServiceFile":
-           source => "puppet:///elasticsearch/$esServiceFile",
+           source => "puppet:///modules/elasticsearch/$esServiceFile",
             require => Exec["elasticsearch-package"]
       }
 
@@ -184,7 +203,7 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
 
       # Add customized startup script (see: http://www.elasticsearch.org/tutorials/2011/02/22/running-elasticsearch-as-a-non-root-user.html)
       file { "$esPath/bin/service/elasticsearch":
-             source => "puppet:///elasticsearch/elasticsearch",
+             source => "puppet:///modules/elasticsearch/elasticsearch",
              require => File["$esPath/bin/service"]
       }
 
