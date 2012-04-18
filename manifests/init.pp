@@ -63,8 +63,21 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
                uid => 901
      }
 
+      # Acceptation of the java license
+      exec { "agree-to-jre-license":
+        command => "/bin/echo -e sun-java6-jre shared/accepted-sun-dlj-v1-1 select true | debconf-set-selections",
+        unless  => "debconf-get-selections | grep 'sun-java6-jre.*shared/accepted-sun-dlj-v1-1.*true'",
+        path    => ["/bin", "/usr/bin"],
+        require => Package["debconf-utils"],
+      }
+
+      package { "debconf-utils":
+        ensure => installed,
+      }
+
      package { "sun-java6-jre":
-      ensure => "present"
+      ensure  => "present",
+      require => Exec['agree-to-jre-license'],
      }
 
      file { "/etc/security/limits.d/${esBasename}.conf":
