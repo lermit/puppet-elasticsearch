@@ -209,7 +209,7 @@ class elasticsearch($version = "0.15.2", $xmx = "2048m", $lvm = true) {
            owner  => elasticsearch,
            group  => elasticsearch,
            recurse => true,
-           require => Exec["elasticsearch-service"]
+           require => File["elasticsearch-service"]
       }
 
       # Set the service config settings
